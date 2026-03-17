@@ -7,19 +7,16 @@
   <style>
     body { font-family: Arial; padding: 20px; }
     input, button { display: block; margin: 5px 0; padding: 5px; width: 250px; }
-    #panel { display: none; }
+    hr { margin: 10px 0; }
   </style>
 </head>
 <body>
 
-<h2>Admin Panel</h2>
+<h2>City Hunt Admin Panel</h2>
 
-<div id="login">
-  Password: <input type="password" id="pass">
-  <button id="loginBtn">Login</button>
-</div>
-
+<!-- PANEL -->
 <div id="panel">
+
   <h3>Add Object</h3>
   <input id="name" placeholder="Name">
   <input id="lat" placeholder="Latitude">
@@ -30,41 +27,45 @@
 
   <h3>All Objects</h3>
   <div id="list"></div>
+
 </div>
 
 <script>
-  // FIREBASE CONFIG
+  // ---------------- FIREBASE CONFIG ----------------
   const firebaseConfig = {
-   apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
+    apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
   authDomain: "city-hunt-m-a.firebaseapp.com",
   databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "city-hunt-m-a",
+  projectId: "city-hunt-m-a"
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  const ADMIN_PASS = "2006"; 
-
-  document.getElementById("loginBtn").addEventListener("click", ()=>{
-    const input = document.getElementById("pass").value.trim();
-    if(input === ADMIN_PASS){
-      document.getElementById("login").style.display = "none";
-      document.getElementById("panel").style.display = "block";
-      loadObjects();
-    } else {
-      alert("Wrong password");
-    }
-  });
-
-  document.getElementById("addBtn").addEventListener("click", ()=>{
+  // ---------------- ADD OBJECT ----------------
+  const addBtn = document.getElementById("addBtn");
+  addBtn.addEventListener("click", ()=>{
     const name = document.getElementById("name").value.trim();
     const lat = parseFloat(document.getElementById("lat").value);
     const lng = parseFloat(document.getElementById("lng").value);
     const p1 = document.getElementById("p1").value.trim();
     const p2 = document.getElementById("p2").value.trim();
-    if(!name||!lat||!lng||!p1||!p2){ alert("Fill all fields"); return;}
-    db.ref("treasures").push({name, lat, lng, photo1:p1, photo2:p2, status:"new", approved:false});
-    alert("Added!");
+
+    if(!name||!lat||!lng||!p1||!p2){ 
+      alert("Please fill all fields!"); 
+      return;
+    }
+
+    db.ref("treasures").push({
+      name: name,
+      lat: lat,
+      lng: lng,
+      photo1: p1,
+      photo2: p2,
+      status: "new",
+      approved: false
+    });
+
+    alert("Object added!");
     document.getElementById("name").value="";
     document.getElementById("lat").value="";
     document.getElementById("lng").value="";
@@ -72,6 +73,7 @@
     document.getElementById("p2").value="";
   });
 
+  // ---------------- LOAD OBJECTS ----------------
   function loadObjects(){
     const list = document.getElementById("list");
     db.ref("treasures").on("value", snap=>{
@@ -80,18 +82,45 @@
         const t = child.val();
         const id = child.key;
         const div = document.createElement("div");
-        div.innerHTML=`<b>${t.name}</b> (Status:${t.status})<br>Approved:${t.approved}
+        div.innerHTML=`
+          <b>${t.name}</b> (Status: ${t.status})<br>
+          Approved: ${t.approved}<br>
           <button onclick="approve('${id}')">Approve</button>
           <button onclick="edit('${id}')">Edit</button>
-          <button onclick="del('${id}')">Delete</button><hr>`;
+          <button onclick="del('${id}')">Delete</button>
+          <hr>
+        `;
         list.appendChild(div);
       });
     });
   }
 
-  function approve(id){ db.ref("treasures/"+id).update({approved:true,status:"approved"}); alert("Approved!"); }
-  function del(id){ if(confirm("Delete?")) db.ref("treasures/"+id).remove(); }
-  function edit(id){ const n=prompt("New name?"); if(n) db.ref("treasures/"+id).update({name:n}); }
+  // ---------------- APPROVE OBJECT ----------------
+  function approve(id){
+    db.ref("treasures/"+id).update({
+      approved: true,
+      status: "approved"
+    });
+    alert("Object approved!");
+  }
+
+  // ---------------- DELETE OBJECT ----------------
+  function del(id){
+    if(confirm("Delete this object?")){
+      db.ref("treasures/"+id).remove();
+    }
+  }
+
+  // ---------------- EDIT OBJECT ----------------
+  function edit(id){
+    const newName = prompt("New name?");
+    if(newName){
+      db.ref("treasures/"+id).update({name:newName});
+    }
+  }
+
+  // Load objects immediately
+  loadObjects();
 </script>
 
 </body>
