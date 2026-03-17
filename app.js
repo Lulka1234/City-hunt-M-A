@@ -1,18 +1,19 @@
 const firebaseConfig = {
- apiKey: "PASTE_HERE",
- authDomain: "PASTE_HERE",
- databaseURL: "PASTE_HERE",
- projectId: "PASTE_HERE"
+ apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
+ authDomain: "city-hunt-m-a.firebaseapp.com",
+ databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
+ projectId: "city-hunt-m-a"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let foundCount = 0;
 let treasures = [];
-let hintsUsed = {};
 
 const gameDiv = document.getElementById("game");
+const mapDiv = document.getElementById("map");
+
+let map = null;
 
 db.ref("treasures").on("value", snap => {
 
@@ -25,101 +26,58 @@ db.ref("treasures").on("value", snap => {
    treasures.push(t);
  });
 
- treasures.forEach((t,index)=>{
+ treasures.forEach(t => {
 
-   if(t.found) return;
+   if(t.approved) return;
 
    let div = document.createElement("div");
 
    div.innerHTML = `
    <h3>${t.name}</h3>
-   <button onclick="showHint('${t.id}')">Help</button>
-   <div id="hint-${t.id}"></div>
+
+   <button onclick="hint1('${t.id}')">Clue 1</button>
+   <button onclick="hint2('${t.id}')">Clue 2</button>
+
+   <div id="h-${t.id}"></div>
+
+   <button onclick="found('${t.id}')">I FOUND IT</button>
+   <p>Status: ${t.status || "Not found"}</p>
    `;
 
    gameDiv.appendChild(div);
 
  });
 
- checkFinish();
-
 });
 
-function showHint(id){
+function hint1(id){
+ let t = treasures.find(x=>x.id===id);
+ document.getElementById("h-"+id).innerHTML =
+ `<img src="${t.photo1}" width="250">`;
+}
+
+function hint2(id){
 
  let t = treasures.find(x=>x.id===id);
 
- let container = document.getElementById("hint-"+id);
+ document.getElementById("h-"+id).innerHTML +=
+ `<img src="${t.photo2}" width="250">`;
 
- if(!hintsUsed[id]){
-   container.innerHTML += `<img src="${t.photo1}">`;
-   hintsUsed[id] = 1;
- }else{
-   container.innerHTML += `<img src="${t.photo2}">`;
-   document.getElementById("map").style.display="block";
+ mapDiv.style.display = "block";
+
+ if(!map){
+   map = L.map('map').setView([t.lat,t.lng],14);
+   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
  }
 
 }
 
-navigator.geolocation.watchPosition(pos=>{
+function found(id){
 
- let lat = pos.coords.latitude;
- let lng = pos.coords.longitude;
-
- treasures.forEach(t=>{
-
-   if(t.found) return;
-
-   let d = distance(lat,lng,t.lat,t.lng);
-
-   if(d < 0.02){
-
-     db.ref("treasures/"+t.id).update({
-       found:true
-     });
-
-     showFireworks();
-
-   }
-
+ db.ref("treasures/"+id).update({
+   status:"pending"
  });
 
-});
-
-function distance(lat1,lon1,lat2,lon2){
-
- let R=6371;
-
- let dLat=(lat2-lat1)*Math.PI/180;
- let dLon=(lon2-lon1)*Math.PI/180;
-
- let a=
- Math.sin(dLat/2)**2+
- Math.cos(lat1*Math.PI/180)*
- Math.cos(lat2*Math.PI/180)*
- Math.sin(dLon/2)**2;
-
- let c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-
- return R*c;
-
-}
-
-function showFireworks(){
- alert("🎆 Found!");
-}
-
-function checkFinish(){
-
- let remaining = treasures.filter(t=>!t.found);
-
- if(remaining.length === 0){
-
-   gameDiv.innerHTML = `
-   <h2>All found!</h2>
-   <img src="FINAL_IMAGE_URL">
-   `;
-
- }
+ alert("Waiting for admin approval...");
 
 }
