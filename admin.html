@@ -1,141 +1,146 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-<title>Admin</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
-
+  <title>City Hunt Admin</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { margin: 5px 0; width: 250px; padding: 5px; }
+    button { margin: 5px; padding: 7px 12px; }
+    hr { margin: 10px 0; }
+    #panel { display: none; }
+  </style>
 </head>
-
 <body>
 
-<h2>Admin Panel</h2>
+<h2>City Hunt Admin Panel</h2>
 
+<!-- LOGIN -->
 <div id="login">
-Password: <input type="password" id="pass">
-<button onclick="login()">Login</button>
+  Password: <input type="password" id="pass">
+  <button onclick="login()">Login</button>
 </div>
 
-<div id="panel" style="display:none">
+<!-- PANEL -->
+<div id="panel">
 
-<h3>Add Object</h3>
+  <h3>Add New Object</h3>
+  <input id="name" placeholder="Name"><br>
+  <input id="lat" placeholder="Latitude"><br>
+  <input id="lng" placeholder="Longitude"><br>
+  <input id="p1" placeholder="Photo clue 1 URL"><br>
+  <input id="p2" placeholder="Photo clue 2 URL"><br>
+  <button onclick="add()">Add Object</button>
 
-<input id="name" placeholder="Name"><br>
-<input id="lat" placeholder="Lat"><br>
-<input id="lng" placeholder="Lng"><br>
-<input id="p1" placeholder="Photo 1"><br>
-<input id="p2" placeholder="Photo 2"><br>
-
-<button onclick="add()">Add</button>
-
-<h3>Objects</h3>
-<div id="list"></div>
+  <h3>All Objects</h3>
+  <div id="list"></div>
 
 </div>
 
 <script>
+  // ================= FIREBASE CONFIG =================
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_FIREBASE_APIKEY",
+    authDomain: "PASTE_YOUR_FIREBASE_AUTHDOMAIN",
+    databaseURL: "PASTE_YOUR_FIREBASE_DATABASEURL",
+    projectId: "PASTE_YOUR_FIREBASE_PROJECTID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-const firebaseConfig = {
- apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
- authDomain: "city-hunt-m-a.firebaseapp.com",
- databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
- projectId: "city-hunt-m-a"
-};
+  // ================= ADMIN PASSWORD =================
+  const ADMIN_PASS = "2006"; 
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+  // ================= LOGIN FUNCTION =================
+  function login() {
+    const input = document.getElementById("pass").value;
+    if (input === ADMIN_PASS) {
+      document.getElementById("login").style.display = "none";
+      document.getElementById("panel").style.display = "block";
+      loadObjects();
+    } else {
+      alert("Wrong password");
+    }
+  }
 
-const ADMIN_PASS = "2006";
+  // ================= ADD OBJECT =================
+  function add() {
+    const nameVal = document.getElementById("name").value;
+    const latVal = parseFloat(document.getElementById("lat").value);
+    const lngVal = parseFloat(document.getElementById("lng").value);
+    const p1Val = document.getElementById("p1").value;
+    const p2Val = document.getElementById("p2").value;
 
-function login(){
+    if (!nameVal || !latVal || !lngVal || !p1Val || !p2Val) {
+      alert("Please fill all fields!");
+      return;
+    }
 
- if(pass.value === ADMIN_PASS){
+    db.ref("treasures").push({
+      name: nameVal,
+      lat: latVal,
+      lng: lngVal,
+      photo1: p1Val,
+      photo2: p2Val,
+      status: "new",
+      approved: false
+    });
 
-   login.style.display="none";
-   panel.style.display="block";
+    alert("Object added!");
+    document.getElementById("name").value = "";
+    document.getElementById("lat").value = "";
+    document.getElementById("lng").value = "";
+    document.getElementById("p1").value = "";
+    document.getElementById("p2").value = "";
+  }
 
-   load();
+  // ================= LOAD OBJECTS =================
+  function loadObjects() {
+    const listDiv = document.getElementById("list");
+    db.ref("treasures").on("value", snapshot => {
+      listDiv.innerHTML = "";
+      snapshot.forEach(child => {
+        const t = child.val();
+        const id = child.key;
 
- }else{
-   alert("Wrong password");
- }
+        const div = document.createElement("div");
+        div.innerHTML = `
+          <b>${t.name}</b> (Status: ${t.status})<br>
+          Approved: ${t.approved}<br>
+          <button onclick="approve('${id}')">Approve</button>
+          <button onclick="edit('${id}')">Edit</button>
+          <button onclick="del('${id}')">Delete</button>
+          <hr>
+        `;
+        listDiv.appendChild(div);
+      });
+    });
+  }
 
-}
+  // ================= APPROVE =================
+  function approve(id) {
+    db.ref("treasures/" + id).update({
+      approved: true,
+      status: "approved"
+    });
+    alert("Object approved!");
+  }
 
-function add(){
+  // ================= DELETE =================
+  function del(id) {
+    if (confirm("Delete this object?")) {
+      db.ref("treasures/" + id).remove();
+    }
+  }
 
- db.ref("treasures").push({
-   name:name.value,
-   lat:Number(lat.value),
-   lng:Number(lng.value),
-   photo1:p1.value,
-   photo2:p2.value,
-   status:"new",
-   approved:false
- });
-
- alert("Added!");
-
-}
-
-function load(){
-
- db.ref("treasures").on("value", snap=>{
-
-   list.innerHTML="";
-
-   snap.forEach(child=>{
-
-     let t=child.val();
-     let id=child.key;
-
-     let div=document.createElement("div");
-
-     div.innerHTML=`
-     <b>${t.name}</b><br>
-     Status: ${t.status}<br>
-
-     <button onclick="approve('${id}')">Approve</button>
-     <button onclick="del('${id}')">Delete</button>
-     <button onclick="edit('${id}')">Edit</button>
-     <hr>
-     `;
-
-     list.appendChild(div);
-
-   });
-
- });
-
-}
-
-function approve(id){
-
- db.ref("treasures/"+id).update({
-   approved:true
- });
-
- alert("Approved 🎆");
-
-}
-
-function del(id){
- db.ref("treasures/"+id).remove();
-}
-
-function edit(id){
-
- let newName = prompt("New name?");
- if(newName){
-   db.ref("treasures/"+id).update({
-     name:newName
-   });
- }
-
-}
-
+  // ================= EDIT =================
+  function edit(id) {
+    const newName = prompt("New name:");
+    if (newName) {
+      db.ref("treasures/" + id).update({ name: newName });
+    }
+  }
 </script>
 
 </body>
