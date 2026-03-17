@@ -19,8 +19,8 @@
 
   <h3>Add Object</h3>
   <input id="name" placeholder="Name">
-  <input id="lat" placeholder="Latitude">
-  <input id="lng" placeholder="Longitude">
+  <input id="lat" placeholder="Latitude (number)">
+  <input id="lng" placeholder="Longitude (number)">
   <input id="p1" placeholder="Photo clue 1 URL">
   <input id="p2" placeholder="Photo clue 2 URL">
   <button id="addBtn">Add Object</button>
@@ -50,8 +50,8 @@
     const p1 = document.getElementById("p1").value.trim();
     const p2 = document.getElementById("p2").value.trim();
 
-    if(!name||!lat||!lng||!p1||!p2){ 
-      alert("Please fill all fields!"); 
+    if(!name || isNaN(lat) || isNaN(lng) || !p1 || !p2){
+      alert("Please fill all fields correctly. Latitude and Longitude must be numbers.");
       return;
     }
 
@@ -119,7 +119,7 @@
     }
   }
 
-  // Load objects immediately
+  // Load objects immediately on page load
   loadObjects();
 </script>
 
