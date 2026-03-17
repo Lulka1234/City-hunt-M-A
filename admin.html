@@ -54,8 +54,9 @@
 
   // ================= LOGIN FUNCTION =================
   function login() {
-    const input = document.getElementById("pass").value;
-    if (input === ADMIN_PASS) {
+    const passInput = document.getElementById("pass");
+    const input = passInput.value.trim();
+    if(input === ADMIN_PASS){
       document.getElementById("login").style.display = "none";
       document.getElementById("panel").style.display = "block";
       loadObjects();
@@ -66,13 +67,13 @@
 
   // ================= ADD OBJECT =================
   function add() {
-    const nameVal = document.getElementById("name").value;
+    const nameVal = document.getElementById("name").value.trim();
     const latVal = parseFloat(document.getElementById("lat").value);
     const lngVal = parseFloat(document.getElementById("lng").value);
-    const p1Val = document.getElementById("p1").value;
-    const p2Val = document.getElementById("p2").value;
+    const p1Val = document.getElementById("p1").value.trim();
+    const p2Val = document.getElementById("p2").value.trim();
 
-    if (!nameVal || !latVal || !lngVal || !p1Val || !p2Val) {
+    if(!nameVal || !latVal || !lngVal || !p1Val || !p2Val){
       alert("Please fill all fields!");
       return;
     }
@@ -118,7 +119,7 @@
     });
   }
 
-  // ================= APPROVE =================
+  // ================= APPROVE OBJECT =================
   function approve(id) {
     db.ref("treasures/" + id).update({
       approved: true,
@@ -127,20 +128,21 @@
     alert("Object approved!");
   }
 
-  // ================= DELETE =================
+  // ================= DELETE OBJECT =================
   function del(id) {
-    if (confirm("Delete this object?")) {
+    if(confirm("Delete this object?")){
       db.ref("treasures/" + id).remove();
     }
   }
 
-  // ================= EDIT =================
+  // ================= EDIT OBJECT =================
   function edit(id) {
     const newName = prompt("New name:");
-    if (newName) {
+    if(newName){
       db.ref("treasures/" + id).update({ name: newName });
     }
   }
+
 </script>
 
 </body>
