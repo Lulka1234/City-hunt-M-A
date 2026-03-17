@@ -11,51 +11,131 @@
 
 <body>
 
-<h2>Add Treasure</h2>
+<h2>Admin Panel</h2>
 
-Name<br>
-<input id="name"><br>
+<div id="login">
+Password: <input type="password" id="pass">
+<button onclick="login()">Login</button>
+</div>
 
-Lat<br>
-<input id="lat"><br>
+<div id="panel" style="display:none">
 
-Lng<br>
-<input id="lng"><br>
+<h3>Add Object</h3>
 
-Photo clue 1<br>
-<input id="p1"><br>
-
-Photo clue 2<br>
-<input id="p2"><br><br>
+<input id="name" placeholder="Name"><br>
+<input id="lat" placeholder="Lat"><br>
+<input id="lng" placeholder="Lng"><br>
+<input id="p1" placeholder="Photo 1"><br>
+<input id="p2" placeholder="Photo 2"><br>
 
 <button onclick="add()">Add</button>
+
+<h3>Objects</h3>
+<div id="list"></div>
+
+</div>
 
 <script>
 
 const firebaseConfig = {
- apiKey: "PASTE_HERE",
- authDomain: "PASTE_HERE",
- databaseURL: "PASTE_HERE",
- projectId: "PASTE_HERE"
+ apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
+ authDomain: "city-hunt-m-a.firebaseapp.com",
+ databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
+ projectId: "city-hunt-m-a"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+const ADMIN_PASS = "1234";
+
+function login(){
+
+ if(pass.value === ADMIN_PASS){
+
+   login.style.display="none";
+   panel.style.display="block";
+
+   load();
+
+ }else{
+   alert("Wrong password");
+ }
+
+}
+
 function add(){
 
  db.ref("treasures").push({
-   name:document.getElementById("name").value,
-   lat:Number(document.getElementById("lat").value),
-   lng:Number(document.getElementById("lng").value),
-   photo1:document.getElementById("p1").value,
-   photo2:document.getElementById("p2").value,
-   found:false
+   name:name.value,
+   lat:Number(lat.value),
+   lng:Number(lng.value),
+   photo1:p1.value,
+   photo2:p2.value,
+   status:"new",
+   approved:false
  });
 
  alert("Added!");
 
 }
+
+function load(){
+
+ db.ref("treasures").on("value", snap=>{
+
+   list.innerHTML="";
+
+   snap.forEach(child=>{
+
+     let t=child.val();
+     let id=child.key;
+
+     let div=document.createElement("div");
+
+     div.innerHTML=`
+     <b>${t.name}</b><br>
+     Status: ${t.status}<br>
+
+     <button onclick="approve('${id}')">Approve</button>
+     <button onclick="del('${id}')">Delete</button>
+     <button onclick="edit('${id}')">Edit</button>
+     <hr>
+     `;
+
+     list.appendChild(div);
+
+   });
+
+ });
+
+}
+
+function approve(id){
+
+ db.ref("treasures/"+id).update({
+   approved:true
+ });
+
+ alert("Approved 🎆");
+
+}
+
+function del(id){
+ db.ref("treasures/"+id).remove();
+}
+
+function edit(id){
+
+ let newName = prompt("New name?");
+ if(newName){
+   db.ref("treasures/"+id).update({
+     name:newName
+   });
+ }
+
+}
+
 </script>
 
 </body>
