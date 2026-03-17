@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Admin</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js"></script>
+
+</head>
+
+<body>
+
+<h2>Add Treasure</h2>
+
+Name<br>
+<input id="name"><br>
+
+Lat<br>
+<input id="lat"><br>
+
+Lng<br>
+<input id="lng"><br>
+
+Photo clue 1<br>
+<input id="p1"><br>
+
+Photo clue 2<br>
+<input id="p2"><br><br>
+
+<button onclick="add()">Add</button>
+
+<script>
+
+const firebaseConfig = {
+ apiKey: "PASTE_HERE",
+ authDomain: "PASTE_HERE",
+ databaseURL: "PASTE_HERE",
+ projectId: "PASTE_HERE"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function add(){
+
+ db.ref("treasures").push({
+   name:document.getElementById("name").value,
+   lat:Number(document.getElementById("lat").value),
+   lng:Number(document.getElementById("lng").value),
+   photo1:document.getElementById("p1").value,
+   photo2:document.getElementById("p2").value,
+   found:false
+ });
+
+ alert("Added!");
+
+}
+</script>
+
+</body>
+</html>
