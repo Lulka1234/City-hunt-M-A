@@ -22,11 +22,14 @@
 <script>
   // --------------- FIREBASE CONFIG ----------------
   const firebaseConfig = {
-    apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
+  apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
   authDomain: "city-hunt-m-a.firebaseapp.com",
   databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "city-hunt-m-a"
-  };
+  projectId: "city-hunt-m-a",
+  storageBucket: "city-hunt-m-a.firebasestorage.app",
+  messagingSenderId: "491976729596",
+  appId: "1:491976729596:web:3eb2e6b4bcc8268d538879"
+};
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
