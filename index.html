@@ -35,21 +35,60 @@
   const db = firebase.database();
 // FIREWORK FUNCTION
 function fireworks(){
-  const div = document.createElement("div");
-  div.innerHTML = "🎆🎆🎆 FOUND! 🎆🎆🎆";
-  div.style.position = "fixed";
-  div.style.top = "40%";
-  div.style.left = "50%";
-  div.style.transform = "translate(-50%, -50%)";
-  div.style.fontSize = "40px";
-  div.style.background = "black";
-  div.style.color = "white";
-  div.style.padding = "20px";
-  div.style.zIndex = "9999";
+  const canvas = document.createElement("canvas");
+  canvas.style.position = "fixed";
+  canvas.style.top = "0";
+  canvas.style.left = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.zIndex = "9999";
+  document.body.appendChild(canvas);
 
-  document.body.appendChild(div);
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 
-  setTimeout(()=> div.remove(), 2000);
+  let particles = [];
+
+  function createFirework(){
+    const x = Math.random() * canvas.width;
+    const y = Math.random() * canvas.height / 2;
+
+    for(let i=0;i<50;i++){
+      particles.push({
+        x: x,
+        y: y,
+        dx: (Math.random()-0.5)*6,
+        dy: (Math.random()-0.5)*6,
+        life: 100
+      });
+    }
+  }
+
+  function animate(){
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    particles.forEach((p,i)=>{
+      p.x += p.dx;
+      p.y += p.dy;
+      p.life--;
+
+      ctx.fillStyle = "hsl(" + Math.random()*360 + ",100%,50%)";
+      ctx.fillRect(p.x, p.y, 3, 3);
+
+      if(p.life <= 0) particles.splice(i,1);
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  createFirework();
+  animate();
+
+  setTimeout(()=>{
+    canvas.remove();
+  }, 3000);
 }
 // LOAD GAME
 function loadGame(){
