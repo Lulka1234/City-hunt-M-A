@@ -3,7 +3,7 @@
 <head>
   <title>City Hunt Admin</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
     body { font-family: Arial; padding: 20px; }
     input, button { display: block; margin: 5px 0; padding: 5px; width: 250px; }
@@ -25,6 +25,11 @@
   <input id="p2" placeholder="Photo clue 2 URL">
   <button id="addBtn">Add Object</button>
 
+  <!-- FINAL IMAGE SECTION -->
+  <h3>Final Image</h3>
+  <input id="finalImg" placeholder="Final image URL">
+  <button onclick="saveFinalImage()">Save Final Image</button>
+
   <h3>All Objects</h3>
   <div id="list"></div>
 
@@ -34,13 +39,13 @@
   // ---------------- FIREBASE CONFIG ----------------
   const firebaseConfig = {
     apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
-  authDomain: "city-hunt-m-a.firebaseapp.com",
-  databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "city-hunt-m-a",
-  storageBucket: "city-hunt-m-a.firebasestorage.app",
-  messagingSenderId: "491976729596",
-  appId: "1:491976729596:web:3eb2e6b4bcc8268d538879"
-};
+    authDomain: "city-hunt-m-a.firebaseapp.com",
+    databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "city-hunt-m-a",
+    storageBucket: "city-hunt-m-a.firebasestorage.app",
+    messagingSenderId: "491976729596",
+    appId: "1:491976729596:web:3eb2e6b4bcc8268d538879"
+  };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
@@ -120,6 +125,19 @@
     if(newName){
       db.ref("treasures/"+id).update({name:newName});
     }
+  }
+
+  // ---------------- SAVE FINAL IMAGE ----------------
+  function saveFinalImage(){
+    const url = document.getElementById("finalImg").value.trim();
+
+    if(!url){
+      alert("Enter image URL");
+      return;
+    }
+
+    db.ref("settings/finalImage").set(url)
+      .then(()=> alert("Final image saved!"));
   }
 
   // Load objects immediately on page load
