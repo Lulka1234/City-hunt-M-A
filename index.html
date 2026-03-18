@@ -33,87 +33,115 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+// FIREWORK FUNCTION
+function fireworks(){
+  const div = document.createElement("div");
+  div.innerHTML = "🎆🎆🎆 FOUND! 🎆🎆🎆";
+  div.style.position = "fixed";
+  div.style.top = "40%";
+  div.style.left = "50%";
+  div.style.transform = "translate(-50%, -50%)";
+  div.style.fontSize = "40px";
+  div.style.background = "black";
+  div.style.color = "white";
+  div.style.padding = "20px";
+  div.style.zIndex = "9999";
 
-  // ---------------- LOAD GAME ----------------
-  function loadGame(){
-    const gameDiv = document.getElementById("game");
+  document.body.appendChild(div);
 
-    db.ref("treasures").on("value", snap=>{
-      gameDiv.innerHTML = "";
+  setTimeout(()=> div.remove(), 2000);
+}
+// LOAD GAME
+function loadGame(){
+  const gameDiv = document.getElementById("game");
 
-      if(!snap.exists()){
-        gameDiv.innerHTML = "No objects found in database";
-        return;
+  db.ref("treasures").on("value", snap=>{
+    gameDiv.innerHTML = "";
+
+    let total = 0;
+    let approvedCount = 0;
+
+    snap.forEach(child=>{
+      const t = child.val();
+      const id = child.key;
+
+      total++;
+
+      if(t.approved === true){
+        approvedCount++;
       }
 
-      snap.forEach(child=>{
-        const t = child.val();
-        const id = child.key;
+      if(t.approved !== true) return;
 
-        // ✅ ONLY SHOW APPROVED
-        if(t.approved !== true) return;
+      const div = document.createElement("div");
 
-        const div = document.createElement("div");
+      div.innerHTML = `
+        <h3>${t.name}</h3>
 
-        div.innerHTML = `
-          <h3>${t.name}</h3>
+        <button onclick="showClue1('${id}')">Clue 1</button>
+        <button onclick="showClue2('${id}')">Clue 2</button>
 
-          <button onclick="showClue1('${id}')">Clue 1</button>
-          <button onclick="showClue2('${id}')">Clue 2</button>
+        <div id="clue-${id}"></div>
+        <div id="map-${id}"></div>
 
-          <div id="clue-${id}"></div>
-          <div id="map-${id}"></div>
+        <button onclick="found('${id}')">I FOUND IT</button>
 
-          <button onclick="found('${id}')">I FOUND IT</button>
+        <hr>
+      `;
 
-          <hr>
-        `;
-
-        gameDiv.appendChild(div);
-      });
-    });
-  }
-
-  // ---------------- CLUE 1 ----------------
-  function showClue1(id){
-    db.ref("treasures/"+id).once("value").then(snap=>{
-      const t = snap.val();
-
-      document.getElementById("clue-"+id).innerHTML =
-        `<img src="${t.photo1}" width="250">`;
-    });
-  }
-
-  // ---------------- CLUE 2 + MAP ----------------
-  function showClue2(id){
-    db.ref("treasures/"+id).once("value").then(snap=>{
-      const t = snap.val();
-
-      document.getElementById("clue-"+id).innerHTML =
-        `<img src="${t.photo2}" width="250">`;
-
-      // map appears ONLY after clue 2
-      document.getElementById("map-"+id).innerHTML =
-        `<iframe
-          width="300"
-          height="200"
-          src="https://maps.google.com/maps?q=${t.lat},${t.lng}&z=15&output=embed">
-        </iframe>`;
-    });
-  }
-
-  // ---------------- FOUND ----------------
-  function found(id){
-    db.ref("treasures/"+id).update({
-      status: "found",
-      approved: false
+      gameDiv.appendChild(div);
     });
 
-    alert("Waiting for admin approval...");
-  }
+    // 🎆 FIREWORK when something gets approved
+    if(approvedCount > 0){
+      fireworks();
+    }
 
-  // START GAME
-  loadGame();
+    // 🏆 FINAL IMAGE when all found
+    if(total > 0 && approvedCount === total){
+      gameDiv.innerHTML += `
+        <h2>🎉 ALL OBJECTS FOUND 🎉</h2>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Fireworks_over_the_Tokyo_Skyline.jpg/640px-Fireworks_over_the_Tokyo_Skyline.jpg" width="300">
+      `;
+    }
+  });
+}
+
+// CLUE 1
+function showClue1(id){
+  db.ref("treasures/"+id).once("value").then(snap=>{
+    const t = snap.val();
+    document.getElementById("clue-"+id).innerHTML =
+      `<img src="${t.photo1}" width="250">`;
+  });
+}
+
+// CLUE 2 + MAP
+function showClue2(id){
+  db.ref("treasures/"+id).once("value").then(snap=>{
+    const t = snap.val();
+
+    document.getElementById("clue-"+id).innerHTML =
+      `<img src="${t.photo2}" width="250">`;
+
+    document.getElementById("map-"+id).innerHTML =
+      `<iframe width="300" height="200"
+      src="https://maps.google.com/maps?q=${t.lat},${t.lng}&z=15&output=embed">
+      </iframe>`;
+  });
+}
+
+// FOUND
+function found(id){
+  db.ref("treasures/"+id).update({
+    status: "found",
+    approved: false
+  });
+
+  alert("Waiting for admin approval...");
+}
+
+loadGame();
 </script>
 
 </body>
