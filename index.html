@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>City Hunt</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <title>City Hunt Game</title>
+
+  <!-- Firebase v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
   <style>
     body { font-family: Arial; padding: 20px; }
-    #game div { margin-bottom: 20px; }
-    #map { height: 300px; width: 100%; display: none; margin-top: 10px; }
+    button { margin: 5px; padding: 6px; }
+    img { margin-top: 10px; display: block; }
   </style>
 </head>
 <body>
 
 <h2>City Hunt</h2>
-<div id="game"></div>
-<div id="map"></div>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<div id="game">Loading...</div>
+
 <script>
-  // --------------- FIREBASE CONFIG ----------------
+  // 🔴 USE EXACT SAME CONFIG AS ADMIN
   const firebaseConfig = {
-  apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
+    apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
   authDomain: "city-hunt-m-a.firebaseapp.com",
   databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "city-hunt-m-a",
@@ -30,65 +30,90 @@
   messagingSenderId: "491976729596",
   appId: "1:491976729596:web:3eb2e6b4bcc8268d538879"
 };
+
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  let treasures = [];
-  const gameDiv = document.getElementById("game");
-  const mapDiv = document.getElementById("map");
-  let map = null;
+  // ---------------- LOAD GAME ----------------
+  function loadGame(){
+    const gameDiv = document.getElementById("game");
 
-  db.ref("treasures").on("value", snap => {
-    gameDiv.innerHTML = "";
-    treasures = [];
-    snap.forEach(child => {
-      let t = child.val();
-      t.id = child.key;
-      if(!t.approved) treasures.push(t);
+    db.ref("treasures").on("value", snap=>{
+      gameDiv.innerHTML = "";
+
+      if(!snap.exists()){
+        gameDiv.innerHTML = "No objects found in database";
+        return;
+      }
+
+      snap.forEach(child=>{
+        const t = child.val();
+        const id = child.key;
+
+        // ✅ ONLY SHOW APPROVED
+        if(t.approved !== true) return;
+
+        const div = document.createElement("div");
+
+        div.innerHTML = `
+          <h3>${t.name}</h3>
+
+          <button onclick="showClue1('${id}')">Clue 1</button>
+          <button onclick="showClue2('${id}')">Clue 2</button>
+
+          <div id="clue-${id}"></div>
+          <div id="map-${id}"></div>
+
+          <button onclick="found('${id}')">I FOUND IT</button>
+
+          <hr>
+        `;
+
+        gameDiv.appendChild(div);
+      });
     });
-
-    treasures.forEach(t => {
-      let div = document.createElement("div");
-      div.innerHTML = `
-        <h3>${t.name}</h3>
-        <button onclick="hint1('${t.id}')">Clue 1</button>
-        <button onclick="hint2('${t.id}')">Clue 2</button>
-        <div id="h-${t.id}"></div>
-        <button onclick="found('${t.id}')">I FOUND IT</button>
-        <p>Status: ${t.status || 'Not found'}</p>
-      `;
-      gameDiv.appendChild(div);
-    });
-
-    checkFinish();
-  });
-
-  function hint1(id){
-    let t = treasures.find(x=>x.id===id);
-    document.getElementById("h-"+id).innerHTML = `<img src="${t.photo1}" width="250">`;
   }
 
-  function hint2(id){
-    let t = treasures.find(x=>x.id===id);
-    document.getElementById("h-"+id).innerHTML += `<img src="${t.photo2}" width="250">`;
-    mapDiv.style.display = "block";
-    if(!map){
-      map = L.map('map').setView([t.lat,t.lng],14);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    }
+  // ---------------- CLUE 1 ----------------
+  function showClue1(id){
+    db.ref("treasures/"+id).once("value").then(snap=>{
+      const t = snap.val();
+
+      document.getElementById("clue-"+id).innerHTML =
+        `<img src="${t.photo1}" width="250">`;
+    });
   }
 
+  // ---------------- CLUE 2 + MAP ----------------
+  function showClue2(id){
+    db.ref("treasures/"+id).once("value").then(snap=>{
+      const t = snap.val();
+
+      document.getElementById("clue-"+id).innerHTML =
+        `<img src="${t.photo2}" width="250">`;
+
+      // map appears ONLY after clue 2
+      document.getElementById("map-"+id).innerHTML =
+        `<iframe
+          width="300"
+          height="200"
+          src="https://maps.google.com/maps?q=${t.lat},${t.lng}&z=15&output=embed">
+        </iframe>`;
+    });
+  }
+
+  // ---------------- FOUND ----------------
   function found(id){
-    db.ref("treasures/"+id).update({ status:"pending" });
+    db.ref("treasures/"+id).update({
+      status: "found",
+      approved: false
+    });
+
     alert("Waiting for admin approval...");
   }
 
-  function checkFinish(){
-    let remaining = treasures.filter(t=>!t.approved);
-    if(remaining.length===0 && treasures.length>0){
-      gameDiv.innerHTML = `<h2>🎉 All objects found!</h2><img src="https://t3.ftcdn.net/jpg/03/76/67/56/360_F_376675663_KfWjTqneCLrmq2pQthRGHFFH4T2rNLzX.jpg">`;
-    }
-  }
+  // START GAME
+  loadGame();
 </script>
 
 </body>
