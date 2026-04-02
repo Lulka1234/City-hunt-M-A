@@ -1,176 +1,116 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>City Hunt Game</title>
-
-  <!-- Firebase v8 -->
+  <title>City Hunt</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
   <style>
     body { font-family: Arial; padding: 20px; }
-    button { margin: 5px; padding: 6px; }
-    img { margin-top: 10px; display: block; }
+    button { margin: 5px; }
   </style>
 </head>
 <body>
 
 <h2>City Hunt</h2>
-
-<div id="game">Loading...</div>
+<div id="game"></div>
 
 <script>
-  // 🔴 Firebase config (same as admin)
-  const firebaseConfig = {
-    apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
-    authDomain: "city-hunt-m-a.firebaseapp.com",
-    databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "city-hunt-m-a",
-    storageBucket: "city-hunt-m-a.firebasestorage.app",
-    messagingSenderId: "491976729596",
-    appId: "1:491976729596:web:3eb2e6b4bcc8268d538879"
-  };
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_PROJECT"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+// FIREWORKS
+function fireworks(){
+  const div=document.createElement("div");
+  div.innerHTML="🎆 FOUND!";
+  div.style.position="fixed";
+  div.style.top="40%";
+  div.style.left="50%";
+  div.style.transform="translate(-50%,-50%)";
+  div.style.fontSize="40px";
+  div.style.background="black";
+  div.style.color="white";
+  div.style.padding="20px";
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(),2000);
+}
 
-  let lastApprovedCount = 0;
+// LOAD GAME
+function load(){
+  db.ref("treasures").on("value", snap=>{
+    game.innerHTML="";
+    let count=0;
 
-  // ---------------- FIREWORKS ----------------
-  function fireworks(){
-    const canvas = document.createElement("canvas");
-    canvas.style.position = "fixed";
-    canvas.style.top = "0";
-    canvas.style.left = "0";
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    canvas.style.zIndex = "9999";
-    document.body.appendChild(canvas);
+    snap.forEach(c=>{
+      const t=c.val(), id=c.key;
+      if(!t.approved) return;
 
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+      count++;
 
-    let particles = [];
+      game.innerHTML+=`
+        <h3>${t.name}</h3>
+        <button onclick="c1('${id}')">Clue 1</button>
+        <button onclick="c2('${id}')">Clue 2</button>
+        <div id="clue-${id}"></div>
+        <button onclick="found('${id}')">FOUND</button>
+        <hr>
+      `;
+    });
 
-    function createFirework(){
-      const x = Math.random() * canvas.width;
-      const y = Math.random() * canvas.height / 2;
-      for(let i=0;i<50;i++){
-        particles.push({
-          x, y,
-          dx: (Math.random()-0.5)*6,
-          dy: (Math.random()-0.5)*6,
-          life: 100
-        });
-      }
-    }
-
-    function animate(){
-      ctx.fillStyle = "rgba(0,0,0,0.2)";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-
-      particles.forEach((p,i)=>{
-        p.x += p.dx;
-        p.y += p.dy;
-        p.life--;
-        ctx.fillStyle = "hsl(" + Math.random()*360 + ",100%,50%)";
-        ctx.fillRect(p.x,p.y,3,3);
-        if(p.life<=0) particles.splice(i,1);
-      });
-
-      requestAnimationFrame(animate);
-    }
-
-    createFirework();
-    animate();
-
-    setTimeout(()=> canvas.remove(), 3000);
-  }
-
-  // ---------------- LOAD GAME ----------------
-  function loadGame(){
-    const gameDiv = document.getElementById("game");
-
-    db.ref("treasures").on("value", snap=>{
-      gameDiv.innerHTML = "";
-
-      let total = 0;
-      let approvedCount = 0;
-
-      snap.forEach(child=>{
-        const t = child.val();
-        const id = child.key;
-
-        total++;
-        if(t.approved) approvedCount++;
-
-        if(!t.approved) return;
-
-        const div = document.createElement("div");
-        div.innerHTML = `
-          <h3>${t.name}</h3>
-          <button onclick="showClue1('${id}')">Clue 1</button>
-          <button onclick="showClue2('${id}')">Clue 2</button>
-          <div id="clue-${id}"></div>
-          <div id="map-${id}"></div>
-          <button onclick="found('${id}')">I FOUND IT</button>
-          <hr>
+    if(count===0){
+      db.ref("settings/finalImage").once("value").then(s=>{
+        game.innerHTML+=`
+          <h2>🎉 ALL FOUND</h2>
+          <img src="${s.val()}" width="300">
         `;
-        gameDiv.appendChild(div);
       });
+    }
+  });
+}
 
-      // Fireworks only when new approved objects appear
-      if(approvedCount > lastApprovedCount){
-        fireworks();
-      }
-      lastApprovedCount = approvedCount;
+// CLUES
+function c1(id){
+  db.ref("treasures/"+id).once("value").then(s=>{
+    clue(id, s.val().photo1);
+  });
+}
 
-      // Show final image if all objects are approved/found
-      if(total>0 && approvedCount === total){
-        db.ref("settings/finalImage").once("value").then(snap=>{
-          const img = snap.val();
-          gameDiv.innerHTML += `
-            <h2>🎉 ALL OBJECTS FOUND 🎉</h2>
-            <img src="${img}" width="300">
-          `;
-          fireworks(); // optional fireworks on final image
-        });
-      }
-    });
+function c2(id){
+  db.ref("treasures/"+id).once("value").then(s=>{
+    const t=s.val();
+    clue(id, t.photo2);
+    document.getElementById("clue-"+id).innerHTML+=`
+      <iframe width="300" height="200"
+      src="https://maps.google.com/maps?q=${t.lat},${t.lng}&z=15&output=embed"></iframe>`;
+  });
+}
+
+function clue(id,img){
+  document.getElementById("clue-"+id).innerHTML=
+    `<img src="${img}" width="200">`;
+}
+
+// FOUND → SEND TO ADMIN
+function found(id){
+  db.ref("treasures/"+id).update({
+    approved:false,
+    status:"pending"
+  });
+}
+
+// FIREWORK TRIGGER
+db.ref("events").on("child_added", snap=>{
+  if(snap.val().type==="approved"){
+    fireworks();
   }
+});
 
-  // ---------------- CLUES ----------------
-  function showClue1(id){
-    db.ref("treasures/"+id).once("value").then(snap=>{
-      const t = snap.val();
-      document.getElementById("clue-"+id).innerHTML =
-        `<img src="${t.photo1}" width="250">`;
-    });
-  }
-
-  function showClue2(id){
-    db.ref("treasures/"+id).once("value").then(snap=>{
-      const t = snap.val();
-      document.getElementById("clue-"+id).innerHTML =
-        `<img src="${t.photo2}" width="250">`;
-      document.getElementById("map-"+id).innerHTML =
-        `<iframe width="300" height="200"
-          src="https://maps.google.com/maps?q=${t.lat},${t.lng}&z=15&output=embed">
-        </iframe>`;
-    });
-  }
-
-  // ---------------- FOUND ----------------
-  function found(id){
-    db.ref("treasures/"+id).update({
-      status: "found",
-      approved: false
-    });
-    alert("Waiting for admin approval...");
-  }
-
-  loadGame();
+load();
 </script>
 
 </body>
