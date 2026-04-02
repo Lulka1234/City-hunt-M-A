@@ -7,81 +7,150 @@
   <style>
     body { font-family: Arial; padding: 20px; }
     input, button { display: block; margin: 5px 0; padding: 5px; width: 250px; }
+    hr { margin: 10px 0; }
   </style>
 </head>
 <body>
 
-<h2>Admin Panel</h2>
+<h2>City Hunt Admin Panel</h2>
+
+<!-- 🔄 RESTART BUTTON -->
+<button onclick="restartGame()">🔄 Restart Game</button>
 
 <h3>Add Object</h3>
 <input id="name" placeholder="Name">
-<input id="lat" placeholder="Latitude">
-<input id="lng" placeholder="Longitude">
-<input id="p1" placeholder="Photo 1">
-<input id="p2" placeholder="Photo 2">
-<button onclick="add()">Add</button>
+<input id="lat" placeholder="Latitude (number)">
+<input id="lng" placeholder="Longitude (number)">
+<input id="p1" placeholder="Photo clue 1 URL">
+<input id="p2" placeholder="Photo clue 2 URL">
+<button onclick="add()">Add Object</button>
 
 <h3>Final Image</h3>
 <input id="finalImg" placeholder="Final image URL">
 <button onclick="saveFinal()">Save Final Image</button>
 
-<h3>Objects</h3>
+<h3>All Objects</h3>
 <div id="list"></div>
 
 <script>
+// 🔴 YOUR FIREBASE CONFIG (UNCHANGED)
 const firebaseConfig = {
   apiKey: "AIzaSyCZUQZ4qSxcdjP6uSv0o62jXDpz8SZqLBs",
   authDomain: "city-hunt-m-a.firebaseapp.com",
   databaseURL: "https://city-hunt-m-a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "city-hunt-m-a"
+  projectId: "city-hunt-m-a",
+  storageBucket: "city-hunt-m-a.firebasestorage.app",
+  messagingSenderId: "491976729596",
+  appId: "1:491976729596:web:3eb2e6b4bcc8268d538879"
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ADD OBJECT
+// 🟢 ADD OBJECT
 function add(){
+  const name = document.getElementById("name").value.trim();
+  const lat = parseFloat(document.getElementById("lat").value);
+  const lng = parseFloat(document.getElementById("lng").value);
+  const p1 = document.getElementById("p1").value.trim();
+  const p2 = document.getElementById("p2").value.trim();
+
+  if(!name || isNaN(lat) || isNaN(lng) || !p1 || !p2){
+    alert("Fill all fields correctly!");
+    return;
+  }
+
   db.ref("treasures").push({
-    name: name.value,
-    lat: parseFloat(lat.value),
-    lng: parseFloat(lng.value),
-    photo1: p1.value,
-    photo2: p2.value,
-    approved: false,
-    status: "active"
+    name,
+    lat,
+    lng,
+    photo1: p1,
+    photo2: p2,
+    status: "active",
+    approved: true
   });
+
+  alert("Object added!");
+
+  name.value="";
+  lat.value="";
+  lng.value="";
+  p1.value="";
+  p2.value="";
 }
 
-// SAVE FINAL IMAGE
+// 🟢 SAVE FINAL IMAGE
 function saveFinal(){
-  db.ref("settings/finalImage").set(finalImg.value);
-  alert("Saved!");
+  const url = document.getElementById("finalImg").value.trim();
+  if(!url){
+    alert("Enter image URL");
+    return;
+  }
+
+  db.ref("settings/finalImage").set(url);
+  alert("Final image saved!");
 }
 
-// LOAD OBJECTS
+// 🟢 LOAD OBJECTS
 function load(){
+  const list = document.getElementById("list");
+
   db.ref("treasures").on("value", snap=>{
     list.innerHTML="";
-    snap.forEach(c=>{
-      const t=c.val(), id=c.key;
-      list.innerHTML+=`
+
+    snap.forEach(child=>{
+      const t = child.val();
+      const id = child.key;
+
+      list.innerHTML += `
         <b>${t.name}</b> (${t.status})<br>
         <button onclick="approve('${id}')">Approve</button>
-        <button onclick="remove('${id}')">Delete</button>
+        <button onclick="del('${id}')">Delete</button>
         <hr>
       `;
     });
   });
 }
 
-// APPROVE FOUND OBJECT → DELETE IT
+// 🟢 APPROVE FOUND OBJECT
 function approve(id){
-  db.ref("treasures/"+id).remove();
-  db.ref("events").push({type:"approved"}); // trigger fireworks
+  db.ref("treasures/"+id).update({
+    status: "approved"
+  });
+
+  // trigger fireworks for players
+  db.ref("events").push({
+    type: "approved",
+    time: Date.now()
+  });
+
+  alert("Approved!");
 }
 
-// DELETE
-function remove(id){
-  db.ref("treasures/"+id).remove();
+// 🟢 DELETE OBJECT
+function del(id){
+  if(confirm("Delete this object?")){
+    db.ref("treasures/"+id).remove();
+  }
+}
+
+// 🔄 RESTART GAME
+function restartGame(){
+  if(!confirm("Restart whole game?")) return;
+
+  db.ref("treasures").once("value").then(snap=>{
+    snap.forEach(child=>{
+      db.ref("treasures/"+child.key).update({
+        status: "active",
+        approved: true
+      });
+    });
+  });
+
+  // clear old events
+  db.ref("events").remove();
+
+  alert("Game restarted!");
 }
 
 load();
